@@ -49,6 +49,10 @@ impl SdpServer {
         Ok(handle)
     }
 
+    pub fn get_socket(&self) -> SocketSdpV6 {
+        self.socket.clone()
+    }
+
     pub fn get_sockfd(&self) -> i32 {
         self.socket.get_sockfd()
     }
