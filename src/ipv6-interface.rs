@@ -23,3 +23,24 @@ pub trait NetConnection {
     fn get_sockfd(&self) -> Result<i32, AfbError>;
     fn close(&self) -> Result<(), AfbError>;
 }
+
+
+pub struct EmptyNetConnection {
+}
+impl NetConnection for EmptyNetConnection {
+    fn get_source(&self) -> net::SocketAddr {
+       net::SocketAddr::new(net::IpAddr::V4(net::Ipv4Addr::new(127, 0, 0, 1)), 0)
+    }
+    fn get_data(&self, _buffer: &mut [u8]) -> Result<u32, AfbError> {
+        Ok(0)
+    }
+    fn put_data(&self, _buffer: &[u8]) -> Result<usize, AfbError> {
+        Ok(0)
+    }
+    fn get_sockfd(&self) -> Result<i32, AfbError> {
+        Ok(-1)
+    }
+    fn close(&self) -> Result<(), AfbError> {
+        Ok(())
+    }
+}
