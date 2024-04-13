@@ -73,9 +73,9 @@ impl SdpServer {
         let remote_addr6 = self.socket.recvfrom(buffer.as_mut_ptr(), buffer.len())?;
 
         // request is valid, update remote source ipv6 addr
-        afb_log_msg!(Debug, None, "Received sdp from addr6:{:0x?}", unsafe {
-            &remote_addr6.addr.sin6_addr.__in6_u.__u6_addr16
-        });
+        // afb_log_msg!(Debug, None, "Received sdp from addr6:{:0x?}", unsafe {
+        //     &remote_addr6.addr.sin6_addr.__in6_u.__u6_addr16
+        // });
         let mut data_cell = self.get_handle()?;
         data_cell.remote_addr6 = Some(remote_addr6);
         Ok(())
