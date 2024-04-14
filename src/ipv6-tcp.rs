@@ -26,7 +26,6 @@ use std::sync::{Mutex, MutexGuard};
 
 impl Drop for TcpClient {
     fn drop(&mut self) {
-        println!("**** TcpClient drop");
         let _ = self.close();
     }
 }
