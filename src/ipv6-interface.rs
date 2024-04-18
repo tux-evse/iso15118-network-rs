@@ -18,10 +18,13 @@ use std::net;
 pub const IPV6_ANY:[u8;16]=[0;16];
 pub trait NetConnection {
     fn get_source(&self) -> net::SocketAddr;
+    fn get_port(&self) -> u16;
+    fn get_scope(&self) -> u32;
     fn get_data(&self, buffer: &mut [u8]) -> Result<u32, AfbError>;
     fn put_data(&self, buffer: &[u8]) -> Result<usize, AfbError>;
     fn get_sockfd(&self) -> Result<i32, AfbError>;
     fn close(&self) -> Result<(), AfbError>;
+    fn is_secure(&self) -> bool;
 }
 
 
@@ -43,4 +46,17 @@ impl NetConnection for EmptyNetConnection {
     fn close(&self) -> Result<(), AfbError> {
         Ok(())
     }
+
+    fn get_port(&self) -> u16 {
+        0
+    }
+
+    fn get_scope(&self) -> u32 {
+        0
+    }
+
+    fn is_secure(&self) -> bool {
+        false
+    }
+
 }

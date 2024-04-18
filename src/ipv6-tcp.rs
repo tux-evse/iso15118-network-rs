@@ -36,6 +36,8 @@ pub struct ClientState {
 
 pub struct TcpClient {
     source: net::SocketAddr,
+    port: u16,
+    scope: u32,
     data_set: Mutex<ClientState>,
 }
 
@@ -77,6 +79,21 @@ impl NetConnection for TcpClient {
     }
 
     #[track_caller]
+    fn get_port(&self) -> u16 {
+        self.port
+    }
+
+    #[track_caller]
+    fn is_secure(&self) -> bool {
+        false
+    }
+
+    #[track_caller]
+    fn get_scope(&self) -> u32 {
+        self.scope
+    }
+
+    #[track_caller]
     fn put_data(&self, buffer: &[u8]) -> Result<usize, AfbError> {
         let mut data_set = self.get_handle()?;
         let count = match data_set.connection.write(buffer) {
@@ -107,6 +124,8 @@ impl TcpClient {
 
         Ok(TcpClient {
                 source: net::SocketAddr::V6(socket),
+                port,
+                scope,
                 data_set: Mutex::new(ClientState { connection }),
             })
     }
@@ -122,6 +141,8 @@ impl TcpClient {
 
 pub struct TcpServer {
     uid: &'static str,
+    port: u16,
+    scope: u32,
     listener: net::TcpListener,
 }
 
@@ -150,7 +171,7 @@ impl TcpServer {
             }
         };
 
-        let handle = TcpServer { uid, listener };
+        let handle = TcpServer { uid, listener, scope: scopv6, port };
         Ok(handle)
     }
 
@@ -166,6 +187,8 @@ impl TcpServer {
         let client = match self.listener.accept() {
             Ok((connection, source)) => TcpClient {
                 source,
+                port: self.port,
+                scope: self.scope,
                 data_set: Mutex::new(ClientState { connection }),
             },
             Err(_) => {

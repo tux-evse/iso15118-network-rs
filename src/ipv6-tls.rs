@@ -40,6 +40,22 @@ impl NetConnection for TlsConnection {
     }
 
     #[track_caller]
+    fn get_port(&self) -> u16 {
+        self.client.get_port()
+    }
+
+    #[track_caller]
+    fn get_scope(&self) -> u32 {
+        self.client.get_scope()
+    }
+
+    #[track_caller]
+    fn is_secure(&self) -> bool {
+        true
+    }
+
+
+    #[track_caller]
     fn get_data(&self, buffer: &mut [u8]) -> Result<u32, AfbError> {
         let count = self.session.recv(buffer)?;
         Ok(count as u32)
