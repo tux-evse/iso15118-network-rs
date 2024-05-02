@@ -72,7 +72,7 @@ pub const IP6_BROADCAST_ANY: [u8; cglue::C_INET6_ADDR_LEN] =
 #[derive(Clone, Debug)]
 pub struct IfaceAddr6 {
     pub addr: net::Ipv6Addr,
-    pub iface: &'static str,
+    pub iface: String,
     pub scope: u32,
 }
 
@@ -85,12 +85,12 @@ impl IfaceAddr6 {
         self.scope
     }
 
-    pub fn get_iface(&self) -> &'static str {
-        self.iface
+    pub fn get_iface(&self) -> &str {
+        self.iface.as_str()
     }
 }
 
-pub fn get_iface_addrs(iface: &'static str, filter: u16) -> Result<IfaceAddr6, AfbError> {
+pub fn get_iface_addrs(iface: &str, filter: u16) -> Result<IfaceAddr6, AfbError> {
     // scan linux network interfaces
     let mut ifaddrs = mem::MaybeUninit::<*mut cglue::ifaddrs>::uninit();
     let status = unsafe { cglue::getifaddrs(ifaddrs.as_mut_ptr()) };
@@ -175,7 +175,7 @@ pub fn get_iface_addrs(iface: &'static str, filter: u16) -> Result<IfaceAddr6, A
         Some(saddr) => IfaceAddr6 {
             addr: net::Ipv6Addr::from(unsafe { saddr.sin6_addr.__in6_u.__u6_addr8 }),
             scope: saddr.sin6_scope_id,
-            iface,
+            iface: iface.to_string(),
         },
     };
     unsafe { cglue::freeifaddrs(start) };
