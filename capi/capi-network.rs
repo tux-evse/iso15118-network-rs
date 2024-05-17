@@ -188,13 +188,13 @@ pub struct SockAddrV6 {
 }
 
 impl SockAddrV6 {
-    pub fn new(addr: &[u8;16], port: u16, scope: u32) -> Self {
+    pub fn new(addr: &[u8; 16], port: u16, scope: u32) -> Self {
         let mut socket_sdp = unsafe { mem::zeroed::<cglue::sockaddr_in6>() };
         socket_sdp.sin6_family = cglue::C_AF_INET6;
         socket_sdp.sin6_port = unsafe { cglue::htons(port) };
-        socket_sdp.sin6_scope_id= scope;
+        socket_sdp.sin6_scope_id = scope;
         socket_sdp.sin6_addr.__in6_u.__u6_addr8 = addr.clone(); // 0= IPV6_ANY
-        Self { addr: socket_sdp}
+        Self { addr: socket_sdp }
     }
 }
 
@@ -996,6 +996,24 @@ impl GnuTlsSession {
     }
 }
 
+#[repr(u32)]
+#[derive(Debug, Clone, Copy)]
+pub enum GnuTlsCertFormat {
+    DER = cglue::C_GNUTLS_X509_FMT_DER,
+    PEM = cglue::C_GNUTLS_X509_FMT_PEM,
+}
+
+impl GnuTlsCertFormat {
+    pub fn from_label(label: &str) -> Result<GnuTlsCertFormat, AfbError> {
+        let format = match label.to_lowercase().as_str() {
+            "der" => GnuTlsCertFormat::DER,
+            "pem" => GnuTlsCertFormat::PEM,
+            _ => return afb_error!("glu-tls-format", "invalid certificat format:{}", label),
+        };
+        Ok(format)
+    }
+}
+
 #[derive(Clone)]
 pub struct GnuTlsConfig {
     version: String,
@@ -1011,6 +1029,7 @@ impl GnuTlsConfig {
         key_path: &str,
         key_pin: Option<&str>,
         ca_trust: Option<&str>,
+        ca_format: GnuTlsCertFormat,
         tls_psk: Option<&'static str>,
         psk_log: Option<&'static str>,
         tls_verbosity: i32,
@@ -1084,12 +1103,12 @@ impl GnuTlsConfig {
                 Some(ca) => cglue::gnutls_certificate_set_x509_trust_dir(
                     xcred,
                     ca.as_ptr() as *mut raw::c_char,
-                    cglue::C_GNUTLS_X509_FMT_PEM,
+                    ca_format as u32,
                 ),
             }
         };
 
-        if status <= 0 {
+        if status < 0 {
             return afb_error!(
                 "gtls-config-ca",
                 "invalid glutls key/certification ca_path:{} error:{}",
@@ -1104,13 +1123,13 @@ impl GnuTlsConfig {
                     xcred,
                     glutls_cert.as_ptr(),
                     glutls_key.as_ptr(),
-                    cglue::C_GNUTLS_X509_FMT_PEM,
+                    ca_format as u32,
                 ),
                 Some(pin) => cglue::gnutls_certificate_set_x509_key_file2(
                     xcred,
                     glutls_cert.as_ptr(),
                     glutls_key.as_ptr(),
-                    cglue::C_GNUTLS_X509_FMT_PEM,
+                    ca_format as u32,
                     pin.as_ptr(),
                     cglue::gnutls_pkcs_encrypt_flags_t_GNUTLS_PKCS_PLAIN,
                 ),

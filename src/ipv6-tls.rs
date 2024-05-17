@@ -114,16 +114,20 @@ impl TlsConfig {
         key_file: &str,
         key_pin: Option<&str>,
         ca_trust: Option<&str>,
+        ca_format: &str,
         tls_psk: Option<&'static str>,
         psk_log: Option<&'static str>,
         tls_verbosity: i32,
         tls_proto:  Option<&'static str>,
     ) -> Result<&'static Self, AfbError> {
+
+        let cert_format= GnuTlsCertFormat::from_label(ca_format)?;
         let config = GnuTlsConfig::new(
             cert_chain,
             key_file,
             key_pin,
             ca_trust,
+            cert_format,
             tls_psk,
             psk_log,
             tls_verbosity,
