@@ -153,7 +153,10 @@ pub fn get_iface_addrs(iface: &str, filter: u16) -> Result<IfaceAddr6, AfbError>
         }
 
         // filter addrv6 (local-link=0xfe80)
-        let addr_prefix = unsafe { cglue::htons(saddr.sin6_addr.__in6_u.__u6_addr16[0]) };
+        // lib musl does not use __in6_u.__u6_addr8
+        //let addr_prefix = unsafe { cglue::htons(saddr.sin6_addr.__in6_u.__u6_addr16[0]) };
+        let addr_v6:[u16;8] = unsafe {mem::transmute(saddr.sin6_addr)};
+        let addr_prefix = addr_v6[0];
         if filter != 0 && addr_prefix != filter {
             next = ifa.ifa_next;
             continue;
@@ -172,10 +175,15 @@ pub fn get_iface_addrs(iface: &str, filter: u16) -> Result<IfaceAddr6, AfbError>
                 filter
             )
         }
-        Some(saddr) => IfaceAddr6 {
-            addr: net::Ipv6Addr::from(unsafe { saddr.sin6_addr.__in6_u.__u6_addr8 }),
+        Some(saddr) => {
+            let addrv6: [u8;16] = unsafe {mem::transmute(saddr.sin6_addr)};
+            IfaceAddr6 {
+            // lib musl does not use __in6_u.__u6_addr8
+            //addr: net::Ipv6Addr::from(unsafe { saddr.sin6_addr.__in6_u.__u6_addr8 }),
+            addr: net::Ipv6Addr::from(addrv6),
             scope: saddr.sin6_scope_id,
             iface: iface.to_string(),
+        }
         },
     };
     unsafe { cglue::freeifaddrs(start) };
@@ -193,7 +201,9 @@ impl SockAddrV6 {
         socket_sdp.sin6_family = cglue::C_AF_INET6;
         socket_sdp.sin6_port = unsafe { cglue::htons(port) };
         socket_sdp.sin6_scope_id = scope;
-        socket_sdp.sin6_addr.__in6_u.__u6_addr8 = addr.clone(); // 0= IPV6_ANY
+        // lib musl does not use __in6_u.__u6_addr8
+        //socket_sdp.sin6_addr.__in6_u.__u6_addr8 = addr.clone(); // 0= IPV6_ANY
+        socket_sdp.sin6_addr = unsafe{mem::transmute(addr.clone())};
         Self { addr: socket_sdp }
     }
 }
@@ -201,8 +211,11 @@ impl SockAddrV6 {
 impl fmt::Display for SockAddrV6 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut text = "ipv6:[".to_string();
+        // lib musl does not use in6_addr.__in6_u
+        let addrv6: [u16;8] = unsafe {mem::transmute(self.addr.sin6_addr)};
         for idx in 0..8 {
-            let slot = unsafe { self.addr.sin6_addr.__in6_u.__u6_addr16[idx] };
+            //let slot = unsafe { self.addr.sin6_addr.__in6_u.__u6_addr16[idx] };
+            let slot= addrv6[idx];
             let key = format!("{:#02x}:", unsafe { cglue::ntohs(slot) });
             text.push_str(&key.as_str());
         }
@@ -325,11 +338,14 @@ impl SocketSdpV6 {
     ) -> Result<(), AfbError> {
         let iface_num = 0;
 
-        let in6_addr = cglue::in6_addr {
-            __in6_u: cglue::in6_addr__bindgen_ty_1 {
-                __u6_addr8: mcast_addr,
-            },
-        };
+        // let in6_addr = cglue::in6_addr {
+        //     __in6_u: cglue::in6_addr__bindgen_ty_1 {
+        //         __u6_addr8: mcast_addr,
+        //     },
+        // };
+
+        // libmusl does not use __u6_addr8 !!!
+        let in6_addr: cglue::in6_addr = unsafe {mem::transmute(mcast_addr)};
 
         let ipv6_mreq = cglue::ipv6_mreq {
             ipv6mr_multiaddr: in6_addr,
