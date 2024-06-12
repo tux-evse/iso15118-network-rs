@@ -54,7 +54,6 @@ impl NetConnection for TlsConnection {
         true
     }
 
-
     #[track_caller]
     fn get_data(&self, buffer: &mut [u8]) -> Result<u32, AfbError> {
         let count = self.session.recv(buffer)?;
@@ -67,7 +66,7 @@ impl NetConnection for TlsConnection {
     }
 
     #[track_caller]
-    fn close(&self) -> Result <(), AfbError> {
+    fn close(&self) -> Result<(), AfbError> {
         let _ = self.client.close();
         let _ = self.session.close();
         Ok(())
@@ -100,7 +99,6 @@ impl TlsConnection {
     pub fn check_pending(&self) -> bool {
         self.session.check_pending()
     }
-
 }
 #[derive(Clone)]
 pub struct TlsConfig {
@@ -109,6 +107,7 @@ pub struct TlsConfig {
 
 // Parse certificate keys
 impl TlsConfig {
+    #[track_caller]
     pub fn new(
         cert_chain: &str,
         key_file: &str,
@@ -118,10 +117,9 @@ impl TlsConfig {
         tls_psk: Option<&'static str>,
         psk_log: Option<&'static str>,
         tls_verbosity: i32,
-        tls_proto:  Option<&'static str>,
+        tls_proto: Option<&'static str>,
     ) -> Result<&'static Self, AfbError> {
-
-        let cert_format= GnuTlsCertFormat::from_label(ca_format)?;
+        let cert_format = GnuTlsCertFormat::from_label(ca_format)?;
         let config = GnuTlsConfig::new(
             cert_chain,
             key_file,
@@ -136,6 +134,73 @@ impl TlsConfig {
 
         let handle = Box::new(TlsConfig { gtls: config });
         Ok(Box::leak(handle))
+    }
+
+    #[track_caller]
+    pub fn from_jsonc(jtls: JsoncObj) -> Result<&'static Self, AfbError> {
+        let cert_format = jtls.default("format", "pem")?;
+        let cert_chain = jtls.get::<&str>("certs")?;
+        let certs_trust = jtls.optional::<&str>("certs_trust")?;
+        let priv_key = jtls.get::<&str>("key")?;
+        let pin_key = jtls.optional::<&str>("pin")?;
+        let tls_psk = jtls.optional::<&str>("pks")?;
+        let tls_verbosity = jtls.default("verbosity", 1)?;
+        let tls_proto = jtls.optional::<&str>("proto")?;
+        let psk_log = jtls.optional::<&str>("psk_log")?;
+
+        if cert_format.len() == 0 {
+            return afb_error!("tlc-config-from-jsonc", "cert_format should > 0");
+        }
+
+        if cert_chain.len() == 0 {
+            return afb_error!("tlc-config-from-jsonc", "cert_chain should > 0");
+        }
+
+        if let Some(value) = certs_trust {
+            if value.len() == 0 {
+                return afb_error!("tlc-config-from-jsonc", "certs_trust when define should > 0");
+            }
+        }
+
+        if priv_key.len() == 0 {
+            return afb_error!("tlc-config-from-jsonc", "priv_key should > 0");
+        }
+
+        if let Some(value) = pin_key {
+            if value.len() == 0 {
+                return afb_error!("tlc-config-from-jsonc", "pin_key when define should > 0");
+            }
+        }
+
+        if let Some(value) = tls_psk {
+            if value.len() == 0 {
+                return afb_error!("tlc-config-from-jsonc", "tls_psk when define should > 0");
+            }
+        }
+
+        if let Some(value) = tls_proto {
+            if value.len() == 0 {
+                return afb_error!("tlc-config-from-jsonc", "tls_proto when define should > 0");
+            }
+        }
+
+        if let Some(value) = psk_log {
+            if value.len() == 0 {
+                return afb_error!("tlc-config-from-jsonc", "psk_log len when define should > 0");
+            }
+        }
+
+        TlsConfig::new(
+                cert_chain,
+                priv_key,
+                pin_key,
+                certs_trust,
+                cert_format,
+                tls_psk,
+                psk_log,
+                tls_verbosity,
+                tls_proto,
+            )
     }
 
     pub fn set_verbosity(&self, level: i32) {
