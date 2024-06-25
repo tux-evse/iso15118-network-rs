@@ -548,7 +548,7 @@ pub extern "C" fn pre_share_key_cb(
     _username: *const raw::c_char,
     key_out: *mut cglue::gnutls_datum_t,
 ) -> raw::c_int {
-    // transform gnutls_session_t into GnuTlsSessionCtx to retreive psk
+    // transform gnutls_session_t into GnuTlsSessionCtx to retrieve psk
     let tls_session = match unsafe {
         (cglue::gnutls_session_get_ptr(session) as *const GnuTlsSession).as_ref()
     } {
@@ -790,7 +790,7 @@ impl GnuTlsSession {
         let status = unsafe { cglue::gnutls_set_default_priority(xsession) };
         if status < 0 {
             return afb_error!(
-                "gtls-session-default",
+                "gtls-session-priority",
                 "fail to set default priority error:{}",
                 gtls_perror(status)
             );
@@ -854,7 +854,7 @@ impl GnuTlsSession {
                 Ok(name) => (Some(name), value.len()),
                 Err(_) => {
                     return afb_error!(
-                        "gtls-session-client_psk",
+                        "gtls-session-client-psk",
                         "fail converting psk string:{}",
                         value
                     )
@@ -880,7 +880,7 @@ impl GnuTlsSession {
     #[allow(dead_code)]
     #[track_caller]
     pub fn get_target_sni(&self) -> Result<String, AfbError> {
-        //retreive client sni hostname target (Fulup TDB check with Jose why it fails)
+        //retrieve client sni hostname target (Fulup TDB check with Jose why it fails)
         const MAX_HOST_LEN: usize = 255;
         let server_sni = unsafe {
             let mut hostname_sni = mem::MaybeUninit::<[u8; MAX_HOST_LEN]>::uninit();
@@ -895,7 +895,7 @@ impl GnuTlsSession {
             if status < 0 {
                 return afb_error!(
                     "gtls-session-hostname",
-                    "fail to retreive client sni hostname error:{}",
+                    "fail to retrieve client sni hostname error:{}",
                     gtls_perror(status)
                 );
             }
@@ -1105,7 +1105,7 @@ impl GnuTlsConfig {
             if status < 0 {
                 return afb_error!(
                     "gtls-config-credential",
-                    "file to initialise session keyfile:{} error:{}",
+                    "fail to initialise session keyfile:{} error:{}",
                     key_path,
                     gtls_perror(status)
                 );
@@ -1227,7 +1227,7 @@ impl GnuTlsConfig {
             if status < 0 {
                 return afb_error!(
                     "gtls-session-credential",
-                    "file to retreive private key from config index:{}, error:{}",
+                    "file to retrieve private key from config index:{}, error:{}",
                     index,
                     gtls_perror(status)
                 );
@@ -1249,7 +1249,7 @@ impl GnuTlsConfig {
             if status < 0 {
                 return afb_error!(
                     "gtls-session-credential",
-                    "file to retreive cert from config index:{}, error:{}",
+                    "file to retrieve cert from config index:{}, error:{}",
                     index,
                     gtls_perror(status)
                 );

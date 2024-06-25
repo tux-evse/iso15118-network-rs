@@ -23,7 +23,7 @@ pub struct TlsConnection {
 
 impl Drop for TlsConnection {
     fn drop(&mut self) {
-        println!("**** TlsConnection drop");
+        // println!("**** TlsConnection drop");
     }
 }
 
@@ -76,7 +76,6 @@ impl NetConnection for TlsConnection {
 impl TlsConnection {
     #[track_caller]
     pub fn new(config: &TlsConfig, client: TcpClient) -> Result<Self, AfbError> {
-        // create a new tls segit pullssion for server TlsConfig
         let sockfd = client.get_sockfd()?;
         let session = GnuTlsSession::new(&config.gtls, sockfd)?;
         // &session.set_server_sni(config);
@@ -140,7 +139,7 @@ impl TlsConfig {
     pub fn from_jsonc(jtls: JsoncObj) -> Result<&'static Self, AfbError> {
         let cert_format = jtls.default("format", "pem")?;
         let cert_chain = jtls.get::<&str>("certs")?;
-        let certs_trust = jtls.optional::<&str>("certs_trust")?;
+        let ca_trust = jtls.optional::<&str>("ca_trust")?;
         let priv_key = jtls.get::<&str>("key")?;
         let pin_key = jtls.optional::<&str>("pin")?;
         let tls_psk = jtls.optional::<&str>("pks")?;
@@ -149,44 +148,44 @@ impl TlsConfig {
         let psk_log = jtls.optional::<&str>("psk_log")?;
 
         if cert_format.len() == 0 {
-            return afb_error!("tlc-config-from-jsonc", "cert_format should > 0");
+            return afb_error!("tls-config-from-jsonc", "cert_format should > 0");
         }
 
         if cert_chain.len() == 0 {
-            return afb_error!("tlc-config-from-jsonc", "cert_chain should > 0");
+            return afb_error!("tls-config-from-jsonc", "cert_chain should > 0");
         }
 
-        if let Some(value) = certs_trust {
+        if let Some(value) = ca_trust {
             if value.len() == 0 {
-                return afb_error!("tlc-config-from-jsonc", "certs_trust when define should > 0");
+                return afb_error!("tls-config-from-jsonc", "ca_trust when define should > 0");
             }
         }
 
         if priv_key.len() == 0 {
-            return afb_error!("tlc-config-from-jsonc", "priv_key should > 0");
+            return afb_error!("tls-config-from-jsonc", "priv_key should > 0");
         }
 
         if let Some(value) = pin_key {
             if value.len() == 0 {
-                return afb_error!("tlc-config-from-jsonc", "pin_key when define should > 0");
+                return afb_error!("tls-config-from-jsonc", "pin_key when define should > 0");
             }
         }
 
         if let Some(value) = tls_psk {
             if value.len() == 0 {
-                return afb_error!("tlc-config-from-jsonc", "tls_psk when define should > 0");
+                return afb_error!("tls-config-from-jsonc", "tls_psk when define should > 0");
             }
         }
 
         if let Some(value) = tls_proto {
             if value.len() == 0 {
-                return afb_error!("tlc-config-from-jsonc", "tls_proto when define should > 0");
+                return afb_error!("tls-config-from-jsonc", "tls_proto when define should > 0");
             }
         }
 
         if let Some(value) = psk_log {
             if value.len() == 0 {
-                return afb_error!("tlc-config-from-jsonc", "psk_log len when define should > 0");
+                return afb_error!("tls-config-from-jsonc", "psk_log len when define should > 0");
             }
         }
 
@@ -194,7 +193,7 @@ impl TlsConfig {
                 cert_chain,
                 priv_key,
                 pin_key,
-                certs_trust,
+                ca_trust,
                 cert_format,
                 tls_psk,
                 psk_log,
