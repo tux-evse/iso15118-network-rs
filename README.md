@@ -11,13 +11,26 @@ This crate provide a Rust API leveraging C-GnuTLS cryto API. It interface standa
 
 * afbv4
 
-'afb-librust' should be install on your system, but you can activate it, as a feature, in your build for development purpose.
+'afb-librust' should be install on your system.
+
+```bash
+/usr/lib/rustlib/%{_arch}-unknown-linux-gnu/lib/libafbv4.rlib
+```
+
+For development purpose, you can use an external libafbv4.
+To activate it, as a feature, you can execute:
+
+```bash
+cargo add --git https://github.com/redpesk-common/afb-librust afbv4 --optional
+```
+
+And build with the features "afbv4"
 
 ```bash
 cargo build --features afbv4
 ```
 
-Inside the "Cargo.toml" file, you must uncomment the line you need, in the "[patch.crates-io]" section.
+You can also directly edit the file Cargo.toml, and manually change it.
 
 ## Api
 
