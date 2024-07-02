@@ -1,10 +1,36 @@
-#RUST binding for ipv6 & gnutls support UDP,TCP &TLS 1.3
+# RUST binding for ipv6 & gnutls support UDP,TCP &TLS 1.3
 
 This crate provide a Rust API leveraging C-GnuTLS cryto API. It interface standard Rust stream for TCP and TLS connection. As well as UDP multicast for Iso15118 SDP(Service Discovery Protocol).
 
-## Dependencies:
+## Dependencies
+
 * gnutls-devel
 * clang
+
+## optional Dependencies
+
+* afbv4
+
+'afb-librust' should be install on your system.
+
+```bash
+/usr/lib/rustlib/%{_arch}-unknown-linux-gnu/lib/libafbv4.rlib
+```
+
+For development purpose, you can use an external libafbv4.
+To activate it, as a feature, you can execute:
+
+```bash
+cargo add --git https://github.com/redpesk-common/afb-librust afbv4 --optional
+```
+
+And build with the features "afbv4"
+
+```bash
+cargo build --features afbv4
+```
+
+You can also directly edit the file Cargo.toml, and manually change it.
 
 ## Api
 
@@ -17,14 +43,14 @@ Check iso15118-binding-rs | iso15118-simulator-rs for further apis
 * let tls_client = TlsConnection::new(&self.tls_conf, tcp_client)?;
 * let tls_connection = TlsConnection::new(ctx.config, tls_client, TlsSessionFlag::Client)?;
 
-## Examples:
+## Examples
 
 * http:://github.com/tux-evse/iso15118-binding-rs
 * https://github.com/tux-evse/iso15118-simulator-rs
 
 The API target asynchronous architecture. Nevertheless it should also work synchronously when needed. While independent of any async framework; it reference platform is afb-librust (https://github.com/redpesk-common/afb-librust)
 
-```
+```bash
 fn async_tls_cb(_evtfd: &AfbEvtFd, revent: u32, ctx: &mut AsyncTlsCtx) -> Result<(), AfbError> {
     if revent == AfbEvtFdPoll::IN.bits() {
         let tls_client = ctx.tls.accept_client()?;
@@ -58,4 +84,3 @@ fn async_tls_cb(_evtfd: &AfbEvtFd, revent: u32, ctx: &mut AsyncTlsCtx) -> Result
     Ok(())
 }
 ```
-
