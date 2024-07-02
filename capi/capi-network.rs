@@ -125,12 +125,6 @@ pub fn get_iface_addrs(iface: &str, filter: u16) -> Result<IfaceAddr6, AfbError>
             }
         };
 
-        println!(
-            "name:{} index:{}",
-            unsafe { CStr::from_ptr(ifa.ifa_name).to_str().unwrap() },
-            idx
-        );
-
         // iface name match ?
         if iface_name.as_ref() != unsafe { CStr::from_ptr(ifa.ifa_name).as_ref() } {
             next = ifa.ifa_next;
@@ -155,8 +149,8 @@ pub fn get_iface_addrs(iface: &str, filter: u16) -> Result<IfaceAddr6, AfbError>
         // filter addrv6 (local-link=0xfe80)
         // lib musl does not use __in6_u.__u6_addr8
         //let addr_prefix = unsafe { cglue::htons(saddr.sin6_addr.__in6_u.__u6_addr16[0]) };
-        let addr_v6:[u16;8] = unsafe {mem::transmute(saddr.sin6_addr)};
-        let addr_prefix = addr_v6[0];
+        let addr_v6: [u16; 8] = unsafe { mem::transmute(saddr.sin6_addr) };
+        let addr_prefix = unsafe { cglue::ntohs(addr_v6[0]) };
         if filter != 0 && addr_prefix != filter {
             next = ifa.ifa_next;
             continue;
@@ -176,15 +170,15 @@ pub fn get_iface_addrs(iface: &str, filter: u16) -> Result<IfaceAddr6, AfbError>
             )
         }
         Some(saddr) => {
-            let addrv6: [u8;16] = unsafe {mem::transmute(saddr.sin6_addr)};
+            let addrv6: [u8; 16] = unsafe { mem::transmute(saddr.sin6_addr) };
             IfaceAddr6 {
-            // lib musl does not use __in6_u.__u6_addr8
-            //addr: net::Ipv6Addr::from(unsafe { saddr.sin6_addr.__in6_u.__u6_addr8 }),
-            addr: net::Ipv6Addr::from(addrv6),
-            scope: saddr.sin6_scope_id,
-            iface: iface.to_string(),
+                // lib musl does not use __in6_u.__u6_addr8
+                //addr: net::Ipv6Addr::from(unsafe { saddr.sin6_addr.__in6_u.__u6_addr8 }),
+                addr: net::Ipv6Addr::from(addrv6),
+                scope: saddr.sin6_scope_id,
+                iface: iface.to_string(),
+            }
         }
-        },
     };
     unsafe { cglue::freeifaddrs(start) };
     Ok(response)
@@ -203,7 +197,7 @@ impl SockAddrV6 {
         socket_sdp.sin6_scope_id = scope;
         // lib musl does not use __in6_u.__u6_addr8
         //socket_sdp.sin6_addr.__in6_u.__u6_addr8 = addr.clone(); // 0= IPV6_ANY
-        socket_sdp.sin6_addr = unsafe{mem::transmute(addr.clone())};
+        socket_sdp.sin6_addr = unsafe { mem::transmute(addr.clone()) };
         Self { addr: socket_sdp }
     }
 }
@@ -212,10 +206,10 @@ impl fmt::Display for SockAddrV6 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut text = "ipv6:[".to_string();
         // lib musl does not use in6_addr.__in6_u
-        let addrv6: [u16;8] = unsafe {mem::transmute(self.addr.sin6_addr)};
+        let addrv6: [u16; 8] = unsafe { mem::transmute(self.addr.sin6_addr) };
         for idx in 0..8 {
             //let slot = unsafe { self.addr.sin6_addr.__in6_u.__u6_addr16[idx] };
-            let slot= addrv6[idx];
+            let slot = addrv6[idx];
             let key = format!("{:#02x}:", unsafe { cglue::ntohs(slot) });
             text.push_str(&key.as_str());
         }
@@ -231,8 +225,6 @@ pub struct SocketSdpV6 {
 
 impl SocketSdpV6 {
     pub fn new() -> Result<Self, AfbError> {
-        const ENABLE: i32 = 1;
-
         let sockfd = unsafe {
             cglue::socket(
                 cglue::C_AF_INET6 as i32,
@@ -247,10 +239,14 @@ impl SocketSdpV6 {
                 get_perror()
             );
         }
+        Ok(SocketSdpV6 { sockfd })
+    }
 
+    pub fn set_reused(&self) -> Result<&Self, AfbError> {
+        const ENABLE: i32 = 1;
         let status = unsafe {
             cglue::setsockopt(
-                sockfd,
+                self.sockfd,
                 cglue::C_SOL_SOCKET,
                 cglue::C_SO_REUSEPORT,
                 &ENABLE as *const _ as *mut raw::c_void,
@@ -258,15 +254,14 @@ impl SocketSdpV6 {
             )
         };
         if status < 0 {
-            unsafe { cglue::close(sockfd) };
+            unsafe { cglue::close(self.sockfd) };
             return afb_error!(
                 "ipv6-socket-setopt",
                 "fail to set reuseport option {}",
                 get_perror()
             );
         }
-
-        Ok(SocketSdpV6 { sockfd })
+        Ok(self)
     }
 
     pub fn get_sockfd(&self) -> i32 {
@@ -345,7 +340,7 @@ impl SocketSdpV6 {
         // };
 
         // libmusl does not use __u6_addr8 !!!
-        let in6_addr: cglue::in6_addr = unsafe {mem::transmute(mcast_addr)};
+        let in6_addr: cglue::in6_addr = unsafe { mem::transmute(mcast_addr) };
 
         let ipv6_mreq = cglue::ipv6_mreq {
             ipv6mr_multiaddr: in6_addr,
@@ -422,8 +417,11 @@ impl SocketSdpV6 {
                 get_perror()
             );
         }
-
         Ok(())
+    }
+
+    pub fn close(&self) {
+       unsafe { cglue::close(self.sockfd) };
     }
 }
 
@@ -729,6 +727,12 @@ pub enum GnuTlsVersion {
     UNSUPPORTED = cglue::gnutls_protocol_t_GNUTLS_VERSION_UNKNOWN,
 }
 
+#[repr(u32)]
+pub enum GnuTlsSessionFlag {
+    Client = cglue::gnutls_init_flags_t_GNUTLS_CLIENT,
+    Server = cglue::gnutls_init_flags_t_GNUTLS_SERVER,
+}
+
 impl GnuTlsVersion {
     pub fn from_u32(value: u32) -> Self {
         match value as cglue::gnutls_protocol_t {
@@ -768,14 +772,15 @@ impl Drop for GnuTlsSession {
 }
 
 impl GnuTlsSession {
-    pub fn new(config: &GnuTlsConfig, sockfd: i32) -> Result<&'static Self, AfbError> {
+    pub fn new(
+        config: &GnuTlsConfig,
+        sockfd: i32,
+        flags: GnuTlsSessionFlag,
+    ) -> Result<&'static Self, AfbError> {
         let xcred = config.xcred;
         let xsession = unsafe {
             let mut session = mem::MaybeUninit::<cglue::gnutls_session_t>::uninit();
-            let status = cglue::gnutls_init(
-                session.as_mut_ptr(),
-                cglue::gnutls_init_flags_t_GNUTLS_SERVER,
-            );
+            let status = cglue::gnutls_init(session.as_mut_ptr(), flags as u32);
             let session = session.assume_init();
             if status < 0 {
                 return afb_error!(
@@ -939,7 +944,7 @@ impl GnuTlsSession {
         if unsafe { cglue::gnutls_error_is_fatal(ret as i32) } < 0 {
             // let try to rehandshake
             let response = if ret == cglue::C_GNUTLS_E_REHANDSHAKE as isize {
-                self.client_handshake()?;
+                self.handshake()?;
                 Ok(0)
             } else {
                 // move gnutls error to rust &str
@@ -966,7 +971,7 @@ impl GnuTlsSession {
         if unsafe { cglue::gnutls_error_is_fatal(ret as i32) } < 0 {
             // let try to rehandshake
             let response = if ret == cglue::C_GNUTLS_E_REHANDSHAKE as isize {
-                self.client_handshake()?;
+                self.handshake()?;
                 Ok(0)
             } else {
                 // move gnutls error to rust &str
@@ -986,14 +991,22 @@ impl GnuTlsSession {
     }
 
     #[track_caller]
-    pub fn client_handshake(&self) -> Result<(), AfbError> {
-        let status = unsafe { cglue::gnutls_handshake(self.xsession) };
-        if status < 0 {
-            return afb_error!(
-                "gtls-session-handskake",
-                "fail tls handshake error:{}",
-                gtls_perror(status)
-            );
+    pub fn handshake(&self) -> Result<(), AfbError> {
+        loop {
+            let status = unsafe { cglue::gnutls_handshake(self.xsession) };
+            if status < 0 {
+                if unsafe { cglue::gnutls_error_is_fatal(status) } != 0 {
+                    return afb_error!(
+                        "gtls-session-handskake",
+                        "fail tls handshake error:{}",
+                        gtls_perror(status)
+                    );
+                } else {
+                    afb_log_msg!(Warning, None, "retrying tls handshake");
+                }
+            } else {
+                break;
+            }
         }
         Ok(())
     }

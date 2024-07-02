@@ -23,7 +23,7 @@ pub struct TlsConnection {
 
 impl Drop for TlsConnection {
     fn drop(&mut self) {
-        // println!("**** TlsConnection drop");
+        //println!("**** TlsConnection drop");
     }
 }
 
@@ -73,14 +73,26 @@ impl NetConnection for TlsConnection {
     }
 }
 
+pub enum TlsConnectionFlag {
+    Client,
+    Server,
+}
+
 impl TlsConnection {
     #[track_caller]
-    pub fn new(config: &TlsConfig, client: TcpClient) -> Result<Self, AfbError> {
+    pub fn new(config: &TlsConfig, client: TcpClient, flag:TlsConnectionFlag) -> Result<Self, AfbError> {
+
+        let session_flag = match flag {
+            TlsConnectionFlag::Client => GnuTlsSessionFlag::Client,
+            TlsConnectionFlag::Server => GnuTlsSessionFlag::Server,
+        };
+
         let sockfd = client.get_sockfd()?;
-        let session = GnuTlsSession::new(&config.gtls, sockfd)?;
+        let session = GnuTlsSession::new(&config.gtls, sockfd, session_flag)?;
         // &session.set_server_sni(config);
 
         let connection = TlsConnection { session, client };
+        connection.handshake()?;
         Ok(connection)
     }
 
@@ -89,8 +101,8 @@ impl TlsConnection {
         self.session.get_version()
     }
     #[track_caller]
-    pub fn client_handshake(&self) -> Result<(), AfbError> {
-        self.session.client_handshake()?;
+    pub fn handshake(&self) -> Result<(), AfbError> {
+        self.session.handshake()?;
         Ok(())
     }
 

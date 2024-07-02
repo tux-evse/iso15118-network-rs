@@ -15,7 +15,7 @@ Check iso15118-binding-rs | iso15118-simulator-rs for further apis
 * let sdp = SdpServer::new(api,"sdp-server", self.iface, self.sdp_port)?;
 * let tcp_client = TcpClient::new(addr6, port, self.scope)?;
 * let tls_client = TlsConnection::new(&self.tls_conf, tcp_client)?;
-* let tls_connection = TlsConnection::new(ctx.config, tls_client)?;
+* let tls_connection = TlsConnection::new(ctx.config, tls_client, TlsSessionFlag::Client)?;
 
 ## Examples:
 
@@ -30,8 +30,8 @@ fn async_tls_cb(_evtfd: &AfbEvtFd, revent: u32, ctx: &mut AsyncTlsCtx) -> Result
         let tls_client = ctx.tls.accept_client()?;
         let source = tls_client.get_source();
         let sockfd = tls_client.get_sockfd()?;
-        let tls_connection = TlsConnection::new(ctx.config, tls_client)?;
-        tls_connection.client_handshake()?;
+        let tls_connection = TlsConnection::new(ctx.config, tls_client, TlsSessionFlag::Server)?;
+        tls_connection.handshake()?;
 
         afb_log_msg!(
             Notice,

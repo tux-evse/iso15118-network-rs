@@ -43,7 +43,7 @@ impl SdpServer {
 
         let handle = SdpServer {
             data_cell: Mutex::new(SdpState { remote_addr6: None }),
-            socket,
+            socket: socket,
             uid,
         };
         Ok(handle)
@@ -101,5 +101,9 @@ impl SdpServer {
         afb_log_msg!(Debug, None, "Responding sdp to addr6:{}", remote_addr6);
         self.socket.sendto(buffer, &remote_addr6)?;
         Ok(())
+    }
+
+    pub fn close(&self) {
+       self.socket.close();
     }
 }
