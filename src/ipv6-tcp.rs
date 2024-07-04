@@ -24,7 +24,7 @@ use std::net;
 use std::os::unix::io::AsRawFd;
 use std::sync::{Mutex, MutexGuard};
 
-impl Drop for TcpClient {
+impl Drop for TcpConnection {
     fn drop(&mut self) {
         //println!("**** TcpConnection drop");
         let _ = self.close();
@@ -35,14 +35,14 @@ pub struct ClientState {
     pub connection: net::TcpStream,
 }
 
-pub struct TcpClient {
+pub struct TcpConnection {
     source: net::SocketAddr,
     port: u16,
     scope: u32,
     data_set: Mutex<ClientState>,
 }
 
-impl NetConnection for TcpClient {
+impl NetConnection for TcpConnection {
     #[track_caller]
     fn get_sockfd(&self) -> Result<i32, AfbError> {
         let data_set = self.get_handle()?;
@@ -107,7 +107,7 @@ impl NetConnection for TcpClient {
     }
 }
 
-impl TcpClient {
+impl TcpConnection {
     pub fn new(addrv6: net::Ipv6Addr, port: u16, scope: u32) -> Result<Self, AfbError> {
         let socket = net::SocketAddrV6::new(addrv6, port, 0, scope);
         let connection = match net::TcpStream::connect(socket) {
@@ -123,7 +123,7 @@ impl TcpClient {
             }
         };
 
-        Ok(TcpClient {
+        Ok(TcpConnection {
                 source: net::SocketAddr::V6(socket),
                 port,
                 scope,
@@ -184,9 +184,9 @@ impl TcpServer {
         self.uid
     }
 
-    pub fn accept_client(&self) -> Result<TcpClient, AfbError> {
+    pub fn accept_client(&self) -> Result<TcpConnection, AfbError> {
         let client = match self.listener.accept() {
-            Ok((connection, source)) => TcpClient {
+            Ok((connection, source)) => TcpConnection {
                 source,
                 port: self.port,
                 scope: self.scope,

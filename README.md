@@ -39,7 +39,7 @@ Check iso15118-binding-rs | iso15118-simulator-rs for further apis
 * let sdp_addr6 = get_iface_addrs(&self.iface, self.prefix)?;
 * let tcp= TcpServer::new(api,"tls-wserver", &sdp_addr6, self.tls_port)?;
 * let sdp = SdpServer::new(api,"sdp-server", self.iface, self.sdp_port)?;
-* let tcp_client = TcpClient::new(addr6, port, self.scope)?;
+* let tcp_client = TcpConnection::new(addr6, port, self.scope)?;
 * let tls_client = TlsConnection::new(&self.tls_conf, tcp_client)?;
 * let tls_connection = TlsConnection::new(ctx.config, tls_client, TlsSessionFlag::Client)?;
 

@@ -18,7 +18,7 @@ use std::net;
 
 pub struct TlsConnection {
     session: &'static GnuTlsSession,
-    client: TcpClient,
+    client: TcpConnection,
 }
 
 impl Drop for TlsConnection {
@@ -80,7 +80,7 @@ pub enum TlsConnectionFlag {
 
 impl TlsConnection {
     #[track_caller]
-    pub fn new(config: &TlsConfig, client: TcpClient, flag:TlsConnectionFlag) -> Result<Self, AfbError> {
+    pub fn new(config: &TlsConfig, client: TcpConnection, flag:TlsConnectionFlag) -> Result<Self, AfbError> {
 
         let session_flag = match flag {
             TlsConnectionFlag::Client => GnuTlsSessionFlag::Client,
